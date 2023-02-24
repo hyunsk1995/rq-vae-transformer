@@ -2,6 +2,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
+configs
+data/ffhq
+ckpt
+results.tmp
+rqvae/lossses/vqgan/.caches
 
 # C extensions
 *.so
