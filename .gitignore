@@ -3,10 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 configs
-data/ffhq
+data
 ckpt
 results.tmp
-rqvae/lossses/vqgan/.caches
+rqvae/lossses/vqgan/
+save
 
 # C extensions
 *.so

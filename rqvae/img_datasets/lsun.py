@@ -37,11 +37,11 @@ class LSUNClass(torchvision.datasets.VisionDataset):
     def __init__(self, root, category_name='church', transform=None):
 
         assert category_name in LSUNClass.valid_categories
-        root = Path(root) / LSUNClass.subpaths[category_name]
-        print(root)
-
+        root = Path(root) / LSUNClass.subpaths[category_name]        
         super(LSUNClass, self).__init__(root, transform=transform)
 
+        root = str(root)
+        print("root:", root)
         self.env = lmdb.open(root, max_readers=1, readonly=True, lock=False, readahead=False, meminit=False)
         with self.env.begin(write=False) as txn:
             self.length = txn.stat()["entries"]
