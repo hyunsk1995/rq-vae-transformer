@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
     disc_state_dict = None
     if not args.load_path == '':
-        ckpt = torch.load(args.load_path, map_location='cpu')
+        ckpt = torch.load(args.load_path, map_location='cuda')
         model.load_state_dict(ckpt['state_dict'])
         disc_state_dict = ckpt.get('discriminator', None)
         if model_ema:
