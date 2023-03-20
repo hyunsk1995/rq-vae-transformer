@@ -21,7 +21,7 @@ from rqvae.optimizer.loss import torch_compute_entropy
 
 
 def assign_code(codebook, code):
-
+    
     if len(code.shape) == 3:
         code = code.reshape(*code.shape, 1)
 

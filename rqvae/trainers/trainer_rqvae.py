@@ -238,7 +238,10 @@ class Trainer(TrainerTemplate):
 
             outputs = model(xs)
             xs_recon = outputs[0]
-            outputs = model.module.compute_loss(*outputs, xs=xs)
+            if hasattr(model, 'module'):
+                outputs = model.module.compute_loss(*outputs, xs=xs) # DDP
+            else:
+                outputs = model.compute_loss(*outputs, xs=xs)
 
             loss_rec_lat = outputs['loss_total']
             loss_recon = outputs['loss_recon']
@@ -313,7 +316,6 @@ class Trainer(TrainerTemplate):
 
         summary = accm.get_summary()
         summary['xs'] = xs
-
         return summary
 
     def logging(self, summary, scheduler=None, epoch=0, mode='train'):

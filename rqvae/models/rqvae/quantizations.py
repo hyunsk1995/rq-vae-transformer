@@ -258,16 +258,45 @@ class RQBottleneck(nn.Module):
         quant_list = []
         code_list = []
         aggregated_quants = torch.zeros_like(x)
+
+        score = -1
+        prev_score = -1
+
+        skip_residual = False
+
         for i in range(self.code_shape[-1]):
+
             quant, code = self.codebooks[i](residual_feature)
-
             residual_feature.sub_(quant)
-            aggregated_quants.add_(quant)
+            # print(residual_feature.shape)
 
-            quant_list.append(aggregated_quants.clone())
-            code_list.append(code.unsqueeze(-1))
-        
+
+            if skip_residual == False:
+                score = torch.norm(residual_feature).item()
+
+            if torch.cuda.current_device() == 0 and skip_residual == False:
+                print(i, "/", self.code_shape[-1], ":", score)
+
+            if skip_residual == False and prev_score != -1 and score > prev_score:
+                skip_residual = True
+
+            # if score < 10:
+            #     print("s")
+            #     break
+
+            if skip_residual == False:
+                prev_score = score
+
+                aggregated_quants.add_(quant)
+                quant_list.append(aggregated_quants.clone())
+                code_list.append(code.unsqueeze(-1))
+
+        # torch.cuda.synchronize()
+        # ct = torch.stack(code_list, dim=0)
+        # print(ct.shape)
+
         codes = torch.cat(code_list, dim=-1)
+        
         return quant_list, codes
 
     def forward(self, x):
