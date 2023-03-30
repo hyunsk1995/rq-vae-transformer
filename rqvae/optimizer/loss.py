@@ -44,7 +44,7 @@ def update_codebook_with_entropy(codebook, code):
 def torch_compute_entropy(x, normalized=False):
     if not normalized:
         x = x / torch.sum(x, dim=-1, keepdim=True)
-        x[x != x] = 0
+        # x[x != x] = 0
     h = -torch.sum(x * torch.log(x + 1e-10), dim=-1)
     return h
 

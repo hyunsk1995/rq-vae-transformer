@@ -26,7 +26,8 @@ DATASET_STATS_FOR_FID = {
     'ffhq': 'assets/fid_stats/ffhq_256_train.npz',
     'lsun_bedroom': 'assets/fid_stats/lsun_256_bedroom.npz',
     'lsun_cat': 'assets/fid_stats/lsun_256_cat.npz',
-    'lsun_church': 'assets/fid_stats/lsun_256_church.npz',
+    'LSUN-church': 'assets/fid_stats/lsun_256_church.npz',
+    # 'lsun_church': 'assets/fid_stats/lsun_256_church.npz',
     'cc3m': 'assets/fid_stats/cc3m_256_val.npz',
     'coco_2014val': 'assets/fid_stats/coco_256_val.npz',
 }

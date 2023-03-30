@@ -1,3 +1,7 @@
+save
+results
+assets
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -9,6 +13,7 @@ results.tmp
 rqvae/lossses/vqgan/
 results
 .vscode
+
 
 # C extensions
 *.so
