@@ -8,6 +8,8 @@ ckpt
 results.tmp
 rqvae/lossses/vqgan/
 results
+save
+assets
 
 # C extensions
 *.so
