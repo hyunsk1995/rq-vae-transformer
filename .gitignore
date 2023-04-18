@@ -9,6 +9,9 @@ results.tmp
 rqvae/lossses/vqgan/
 results
 .vscode
+assets
+save
+
 
 # C extensions
 *.so
