@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .rqvae import RQVAE
+from .rqvae import RQVAE, ViTRQVAE
 
 def get_rqvae(config):
 
     hps = config.hparams
     ddconfig = config.ddconfig
 
-    model = RQVAE(**hps, ddconfig=ddconfig, checkpointing=config.checkpointing)
+    model = ViTRQVAE(**hps, ddconfig=ddconfig, checkpointing=config.checkpointing)
 
     return model
 
