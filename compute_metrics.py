@@ -27,10 +27,7 @@ DATASET_STATS_FOR_FID = {
     'lsun_bedroom': 'assets/fid_stats/lsun_256_bedroom.npz',
     'lsun_cat': 'assets/fid_stats/lsun_256_cat.npz',
     'LSUN-church': 'assets/fid_stats/lsun_256_church.npz',
-<<<<<<< HEAD
     # 'lsun_church': 'assets/fid_stats/lsun_256_church.npz',
-=======
->>>>>>> base
     'cc3m': 'assets/fid_stats/cc3m_256_val.npz',
     'coco_2014val': 'assets/fid_stats/coco_256_val.npz',
 }
