@@ -46,13 +46,8 @@ optimizer:
 
 
 experiment:
-<<<<<<< HEAD
   batch_size: 1
   epochs: 3
-=======
-  batch_size: 32
-  epochs: 1
->>>>>>> parent of 0ed23b9... environment setting
   save_ckpt_freq: 1
   test_freq: 1
 
