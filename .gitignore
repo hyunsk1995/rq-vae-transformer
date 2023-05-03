@@ -12,8 +12,13 @@ ckpt
 results.tmp
 rqvae/lossses/vqgan/
 results
+<<<<<<< HEAD
 .vscode
 
+=======
+save
+assets
+>>>>>>> base
 
 # C extensions
 *.so
