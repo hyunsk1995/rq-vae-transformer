@@ -52,6 +52,8 @@ class VQEmbedding(nn.Embedding):
 
         inputs_norm_sq = inputs_flat.pow(2.).sum(dim=1, keepdim=True)
         codebook_t_norm_sq = codebook_t.pow(2.).sum(dim=0, keepdim=True)
+
+        print(inputs_norm_sq.device, codebook_t_norm_sq.device)
         distances = torch.addmm(
             inputs_norm_sq + codebook_t_norm_sq,
             inputs_flat,
@@ -129,6 +131,8 @@ class VQEmbedding(nn.Embedding):
         self.weight[:-1, :] = self.embed_ema / normalized_cluster_size.reshape(-1, 1)
 
     def forward(self, inputs):
+        print(inputs.shape)
+        print(inputs.device)
         embed_idxs = self.find_nearest_embedding(inputs)
         if self.training:
             if self.ema:
@@ -196,13 +200,28 @@ class RQBottleneck(nn.Module):
         assert len(self.n_embed) == self.code_shape[-1]
         assert len(self.decay) == self.code_shape[-1]
 
+        div = [2, 2]
+        self.div = div
+        local_n_embed = self.n_embed[0] // (div[0]*div[1])
+        codebooks = []
+
         if self.shared_codebook:
-            codebook0 = VQEmbedding(self.n_embed[0], 
-                                    embed_dim, 
-                                    decay=self.decay[0], 
-                                    restart_unused_codes=restart_unused_codes,
-                                    )
-            self.codebooks = nn.ModuleList([codebook0 for _ in range(self.code_shape[-1])])
+            # codebook0 = VQEmbedding(local_n_embed,
+            #                         embed_dim, 
+            #                         decay=self.decay[0], 
+            #                         restart_unused_codes=restart_unused_codes,
+            #                         )
+            for i in range(div[0]):
+                codebooks.append([])
+                for _ in range(div[1]):
+                    codebook0 = VQEmbedding(local_n_embed,
+                                            embed_dim, 
+                                            decay=self.decay[0], 
+                                            restart_unused_codes=restart_unused_codes,
+                                            )
+                    codebooks[i].append(nn.ModuleList([codebook0 for _ in range(self.code_shape[-1])]))
+            self.codebooks = codebooks
+
         else:
             codebooks = [VQEmbedding(self.n_embed[idx], 
                                      embed_dim, 
@@ -258,19 +277,29 @@ class RQBottleneck(nn.Module):
         quant_list = []
         code_list = []
         aggregated_quants = torch.zeros_like(x)
-        for i in range(self.code_shape[-1]):
-            quant, code = self.codebooks[i](residual_feature)
 
-            residual_feature.sub_(quant)
-            aggregated_quants.add_(quant)
+        localh, localw = h//self.div[0], w//self.div[1]
 
-            quant_list.append(aggregated_quants.clone())
-            code_list.append(code.unsqueeze(-1))
+        for x in range(self.div[0]):
+            for y in range(self.div[1]):
+                local_aggregated_quants = torch.zeros(localh, localw)
+
+                for i in range(self.code_shape[-1]):
+                    local_residual_feature = residual_feature[x*localh:(x+1)*localh][y*localw:(y+1)*localw]
+                    quant, code = self.codebooks[x][y][i](local_residual_feature)
+
+                    local_residual_feature.sub_(quant)
+                    local_aggregated_quants.add_(quant)
+
+                    quant_list.append(aggregated_quants.clone())
+                    code_list.append(code.unsqueeze(-1))
+
         
         codes = torch.cat(code_list, dim=-1)
         return quant_list, codes
 
     def forward(self, x):
+        print(self.code_shape)
         x_reshaped = self.to_code_shape(x)
         quant_list, codes = self.quantize(x_reshaped)
 
