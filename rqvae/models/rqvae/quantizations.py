@@ -53,6 +53,8 @@ class VQEmbedding(nn.Embedding):
         inputs_norm_sq = inputs_flat.pow(2.).sum(dim=1, keepdim=True)
         codebook_t_norm_sq = codebook_t.pow(2.).sum(dim=0, keepdim=True)
 
+        print(inputs_norm_sq.shape, codebook_t_norm_sq.shape)
+
         print(inputs_norm_sq.device, codebook_t_norm_sq.device)
         distances = torch.addmm(
             inputs_norm_sq + codebook_t_norm_sq,
