@@ -53,9 +53,6 @@ class VQEmbedding(nn.Embedding):
         inputs_norm_sq = inputs_flat.pow(2.).sum(dim=1, keepdim=True)
         codebook_t_norm_sq = codebook_t.pow(2.).sum(dim=0, keepdim=True)
 
-        print(inputs_norm_sq.shape, codebook_t_norm_sq.shape)
-
-        print(inputs_norm_sq.device, codebook_t_norm_sq.device)
         distances = torch.addmm(
             inputs_norm_sq + codebook_t_norm_sq,
             inputs_flat,
@@ -133,8 +130,6 @@ class VQEmbedding(nn.Embedding):
         self.weight[:-1, :] = self.embed_ema / normalized_cluster_size.reshape(-1, 1)
 
     def forward(self, inputs):
-        print(inputs.shape)
-        print(inputs.device)
         embed_idxs = self.find_nearest_embedding(inputs)
         if self.training:
             if self.ema:
@@ -145,6 +140,7 @@ class VQEmbedding(nn.Embedding):
         if self.ema and self.training:
             self._update_embedding()
 
+        print("Embedding:", embeds.shape, embed_idxs.shape)
         return embeds, embed_idxs
 
     def embed(self, idxs):
@@ -227,7 +223,7 @@ class RQBottleneck(nn.Module):
             #                                 restart_unused_codes=restart_unused_codes,
             #                                 )
             #         codebooks[i].append(nn.ModuleList([codebook0 for _ in range(self.code_shape[-1])]))
-            self.codebooks = codebooks
+            self.codebooks = nn.ModuleList([codebooks for _ in range(self.code_shape[-1])])
 
         else:
             codebooks = [VQEmbedding(self.n_embed[idx], 
@@ -280,33 +276,44 @@ class RQBottleneck(nn.Module):
         B, h, w, embed_dim = x.shape
 
         residual_feature = x.detach().clone()
-
-        quant_list = []
-        code_list = []
+        
+        quant_list = torch.zeros(B, h, w, embed_dim)
+        code_list = torch.zeros(B, h, w, self.code_shape[-1])
+        # quant_list = []
+        # code_list = []
+        
         aggregated_quants = torch.zeros_like(x)
 
         localh, localw = h//self.div[0], w//self.div[1]
 
-        for x in range(self.div[0]):
-            for y in range(self.div[1]):
-                local_aggregated_quants = torch.zeros(localh, localw)
+        for i in range(self.div[0]):
+            for j in range(self.div[1]):
 
-                for i in range(self.code_shape[-1]):
-                    local_residual_feature = residual_feature[x*localh:(x+1)*localh][y*localw:(y+1)*localw]
-                    quant, code = self.codebooks[x][y][i](local_residual_feature)
+                local_aggregated_quants = torch.zeros(B, localh, localw, embed_dim).cuda()
+                local_quant_list = []
+                local_code_list = []
+
+                for d in range(self.code_shape[-1]):
+                    local_residual_feature = residual_feature[:,i*localh:(i+1)*localh,j*localw:(j+1)*localw]
+                    print(i,j,d)
+                    quant, code = self.codebooks[d][i][j](local_residual_feature)
 
                     local_residual_feature.sub_(quant)
                     local_aggregated_quants.add_(quant)
 
-                    quant_list.append(aggregated_quants.clone())
-                    code_list.append(code.unsqueeze(-1))
+                    local_quant_list.append(local_aggregated_quants.clone())
+                    local_code_list.append(code.unsqueeze(-1))
+
+
+                for b in range(B):
+                    quant_list[b][i*localh:(i+1)*localh,j*localw:(j+1)*localw] = local_quant_list[b]
+                    code_list[b][i*localh:(i+1)*localh,j*localw:(j+1)*localw] = local_code_list[b]
 
         
         codes = torch.cat(code_list, dim=-1)
         return quant_list, codes
 
     def forward(self, x):
-        print(self.code_shape)
         x_reshaped = self.to_code_shape(x)
         quant_list, codes = self.quantize(x_reshaped)
 
