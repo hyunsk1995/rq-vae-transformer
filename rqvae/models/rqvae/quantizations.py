@@ -213,15 +213,20 @@ class RQBottleneck(nn.Module):
             #                         decay=self.decay[0], 
             #                         restart_unused_codes=restart_unused_codes,
             #                         )
-            for i in range(div[0]):
-                codebooks.append([])
-                for _ in range(div[1]):
-                    codebook0 = VQEmbedding(local_n_embed,
-                                            embed_dim, 
-                                            decay=self.decay[0], 
-                                            restart_unused_codes=restart_unused_codes,
-                                            )
-                    codebooks[i].append(nn.ModuleList([codebook0 for _ in range(self.code_shape[-1])]))
+            codebooks = nn.ModuleList(nn.ModuleList(VQEmbedding(local_n_embed, 
+                                     embed_dim, 
+                                     decay=self.decay[0], 
+                                     restart_unused_codes=restart_unused_codes,
+                                     ) for _ in range(div[0])) for _ in range(div[1]))
+            # for i in range(div[0]):
+            #     codebooks.append([])
+            #     for _ in range(div[1]):
+            #         codebook0 = VQEmbedding(local_n_embed,
+            #                                 embed_dim, 
+            #                                 decay=self.decay[0], 
+            #                                 restart_unused_codes=restart_unused_codes,
+            #                                 )
+            #         codebooks[i].append(nn.ModuleList([codebook0 for _ in range(self.code_shape[-1])]))
             self.codebooks = codebooks
 
         else:
