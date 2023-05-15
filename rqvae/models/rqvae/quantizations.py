@@ -139,8 +139,6 @@ class VQEmbedding(nn.Embedding):
 
         if self.ema and self.training:
             self._update_embedding()
-
-        print("Embedding:", embeds.shape, embed_idxs.shape)
         return embeds, embed_idxs
 
     def embed(self, idxs):
@@ -276,9 +274,9 @@ class RQBottleneck(nn.Module):
         B, h, w, embed_dim = x.shape
 
         residual_feature = x.detach().clone()
-        
-        quant_list = torch.zeros(B, h, w, embed_dim)
-        code_list = torch.zeros(B, h, w, self.code_shape[-1])
+
+        quant_list = torch.zeros(self.code_shape[-1], B, h, w, embed_dim)
+        code_list = torch.zeros(self.code_shape[-1], B, h, w, 1)
         # quant_list = []
         # code_list = []
         
@@ -295,19 +293,17 @@ class RQBottleneck(nn.Module):
 
                 for d in range(self.code_shape[-1]):
                     local_residual_feature = residual_feature[:,i*localh:(i+1)*localh,j*localw:(j+1)*localw]
-                    print(i,j,d)
                     quant, code = self.codebooks[d][i][j](local_residual_feature)
 
                     local_residual_feature.sub_(quant)
                     local_aggregated_quants.add_(quant)
 
-                    local_quant_list.append(local_aggregated_quants.clone())
-                    local_code_list.append(code.unsqueeze(-1))
+                    # local_quant_list.append(local_aggregated_quants.clone())
+                    # local_code_list.append(code.unsqueeze(-1))
 
-
-                for b in range(B):
-                    quant_list[b][i*localh:(i+1)*localh,j*localw:(j+1)*localw] = local_quant_list[b]
-                    code_list[b][i*localh:(i+1)*localh,j*localw:(j+1)*localw] = local_code_list[b]
+                    quant_list[d][:,i*localh:(i+1)*localh,j*localw:(j+1)*localw] = local_aggregated_quants.clone()
+                    code_list[d][:,i*localh:(i+1)*localh,j*localw:(j+1)*localw] = code.unsqueeze(-1)
+                codes = torch.cat(code_list[d], dim=-1)
 
         
         codes = torch.cat(code_list, dim=-1)
