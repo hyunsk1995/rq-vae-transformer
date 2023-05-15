@@ -275,8 +275,8 @@ class RQBottleneck(nn.Module):
 
         residual_feature = x.detach().clone()
 
-        quant_list = torch.zeros(self.code_shape[-1], B, h, w, embed_dim)
-        code_list = torch.zeros(self.code_shape[-1], B, h, w, 1)
+        quant_list = [torch.zeros(B, h, w, embed_dim) for _ in range(self.code_shape[-1])]
+        code_list = [torch.zeros(B, h, w, 1) for _ in range(self.code_shape[-1])]
         # quant_list = []
         # code_list = []
         
@@ -303,10 +303,9 @@ class RQBottleneck(nn.Module):
 
                     quant_list[d][:,i*localh:(i+1)*localh,j*localw:(j+1)*localw] = local_aggregated_quants.clone()
                     code_list[d][:,i*localh:(i+1)*localh,j*localw:(j+1)*localw] = code.unsqueeze(-1)
-                codes = torch.cat(code_list[d], dim=-1)
-
         
-        codes = torch.cat(code_list, dim=-1)
+        codes = torch.cat(code_list, dim=-1).cuda()
+        
         return quant_list, codes
 
     def forward(self, x):
@@ -325,7 +324,6 @@ class RQBottleneck(nn.Module):
         The loss is iteratively computed by aggregating quantized features.
         """
         loss_list = []
-        
         for idx, quant in enumerate(quant_list):
             partial_loss = (x-quant.detach()).pow(2.0).mean()
             loss_list.append(partial_loss)
