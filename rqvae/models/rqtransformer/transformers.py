@@ -37,6 +37,7 @@ class RQTransformer(Stage2Model):
         super().__init__()
 
         self.config = config = config.copy()
+        self.latent_dim = config.block_size
 
         if len(config.block_size) != 3:
             raise ValueError("incompatible block size")
@@ -106,8 +107,8 @@ class RQTransformer(Stage2Model):
 
         self._cache = None
 
-    def embed_with_model_aux(self, xs, model_aux):
-        xs_emb, _ = model_aux.get_code_emb_with_depth(xs)
+    def embed_with_model_aux(self, xs, model_aux, latent_dim):
+        xs_emb, _ = model_aux.get_code_emb_with_depth(xs, latent_dim)
         return xs_emb
 
     def forward(self, xs, model_aux=None, cond=None, amp=False):
@@ -126,7 +127,7 @@ class RQTransformer(Stage2Model):
 
             # compute the embeddings for body
             if self.config.input_emb_vqvae:
-                xs_emb = self.embed_with_model_aux(xs, model_aux)
+                xs_emb = self.embed_with_model_aux(xs, model_aux, self.latent_dim)
                 xs_emb = self.input_mlp(xs_emb)
             else:
                 xs_emb = self.tok_emb(xs)
@@ -154,7 +155,7 @@ class RQTransformer(Stage2Model):
 
             # compute the embeddings for head
             if self.config.head_emb_vqvae:
-                depth_ctx = self.embed_with_model_aux(xs, model_aux)
+                depth_ctx = self.embed_with_model_aux(xs, model_aux, self.latent_dim)
 
                 if self.config.cumsum_depth_ctx:
                     depth_ctx = torch.cumsum(depth_ctx, dim=-2)
@@ -216,7 +217,7 @@ class RQTransformer(Stage2Model):
             if d == 0:
                 # Computing embedding for full input is wasteful, but code is simpler...
                 if self.config.input_emb_vqvae:
-                    xs_emb = self.embed_with_model_aux(xs, model_aux)
+                    xs_emb = self.embed_with_model_aux(xs, model_aux, self.latent_dim)
                     xs_emb = self.input_mlp(xs_emb)
                 else:
                     xs_emb = self.tok_emb(xs)
@@ -247,7 +248,7 @@ class RQTransformer(Stage2Model):
 
             # compute the embeddings for head
             if self.config.head_emb_vqvae:
-                depth_ctx = self.embed_with_model_aux(xs, model_aux)
+                depth_ctx = self.embed_with_model_aux(xs, model_aux, self.latent_dim)
 
                 if self.config.cumsum_depth_ctx:
                     depth_ctx = torch.cumsum(depth_ctx, dim=-2)
@@ -343,7 +344,6 @@ class RQTransformer(Stage2Model):
         self.init_cache()
 
         for (h, w, d) in pbar:
-
             if (h, w) < (start_loc[0], start_loc[1]):
                 continue
 

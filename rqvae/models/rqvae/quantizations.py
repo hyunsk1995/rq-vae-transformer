@@ -276,11 +276,7 @@ class RQBottleneck(nn.Module):
         residual_feature = x.detach().clone()
 
         quant_list = [torch.zeros(B, h, w, embed_dim) for _ in range(self.code_shape[-1])]
-        code_list = [torch.zeros(B, h, w, 1) for _ in range(self.code_shape[-1])]
-        # quant_list = []
-        # code_list = []
-        
-        aggregated_quants = torch.zeros_like(x)
+        code_list = [torch.zeros(B, h, w, 1, dtype=torch.long) for _ in range(self.code_shape[-1])]
 
         localh, localw = h//self.div[0], w//self.div[1]
 
@@ -288,8 +284,6 @@ class RQBottleneck(nn.Module):
             for j in range(self.div[1]):
 
                 local_aggregated_quants = torch.zeros(B, localh, localw, embed_dim).cuda()
-                local_quant_list = []
-                local_code_list = []
 
                 for d in range(self.code_shape[-1]):
                     local_residual_feature = residual_feature[:,i*localh:(i+1)*localh,j*localw:(j+1)*localw]
@@ -298,13 +292,14 @@ class RQBottleneck(nn.Module):
                     local_residual_feature.sub_(quant)
                     local_aggregated_quants.add_(quant)
 
-                    # local_quant_list.append(local_aggregated_quants.clone())
-                    # local_code_list.append(code.unsqueeze(-1))
-
                     quant_list[d][:,i*localh:(i+1)*localh,j*localw:(j+1)*localw] = local_aggregated_quants.clone()
+                    quant_list[d] = quant_list[d].cuda()
+                    
                     code_list[d][:,i*localh:(i+1)*localh,j*localw:(j+1)*localw] = code.unsqueeze(-1)
+                    code_list[d] = code_list[d].cuda()
+
+        codes = torch.cat(code_list, dim=-1)
         
-        codes = torch.cat(code_list, dim=-1).cuda()
         
         return quant_list, codes
 
@@ -348,7 +343,7 @@ class RQBottleneck(nn.Module):
         return embeds
     
     @torch.no_grad()
-    def embed_code_with_depth(self, code, to_latent_shape=False):
+    def embed_code_with_depth(self, code, latent_dim, to_latent_shape=False):
         '''
         do not reduce the code embedding over the axis of code-depth.
         
@@ -356,17 +351,24 @@ class RQBottleneck(nn.Module):
         '''
         # spatial resolution can be different in the sampling process
         assert code.shape[-1] == self.code_shape[-1]
+
+        (h,w,_) = latent_dim        
+        localh, localw = h//self.div[0], w//self.div[1]
+
+        B, sampling_idx, d = code.shape
+        i, j = (sampling_idx//h)//localh, (sampling_idx%h)//localw
         
         code_slices = torch.chunk(code, chunks=code.shape[-1], dim=-1)
 
         if self.shared_codebook:
-            embeds = [self.codebooks[0].embed(code_slice) for i, code_slice in enumerate(code_slices)]
+            embeds = [self.codebooks[0][i][j].embed(code_slice) for d, code_slice in enumerate(code_slices)]
         else:
-            embeds = [self.codebooks[i].embed(code_slice) for i, code_slice in enumerate(code_slices)]
+            embeds = [self.codebooks[d].embed(code_slice) for d, code_slice in enumerate(code_slices)]
 
         if to_latent_shape:
             embeds = [self.to_latent_shape(embed.squeeze(-2)).unsqueeze(-2) for embed in embeds]
         embeds = torch.cat(embeds, dim=-2)
+        print(embeds.shape)
         
         return embeds, None
 
@@ -387,10 +389,22 @@ class RQBottleneck(nn.Module):
         assert code_idx < code.shape[-1]
         
         B, h, w, _ = code.shape
-        
+    
         code_slices = torch.chunk(code, chunks=code.shape[-1], dim=-1)
+
+        localh, localw = h//self.div[0], w//self.div[1]
+
+        embeds = [torch.zeros(B, h, w, 1, 256) for _ in range(self.code_shape[-1])]
+
         if self.shared_codebook:
-            embeds = [self.codebooks[0].embed(code_slice) for i, code_slice in enumerate(code_slices)]
+            for i in range(self.div[0]):
+                for j in range(self.div[1]):
+                    local_embeds = [self.codebooks[0][i][j].embed(code_slice[:,i*localh:(i+1)*localh,j*localw:(j+1)*localw]) for _, code_slice in enumerate(code_slices)]
+                    
+                    for d in range(self.code_shape[-1]):
+                        embeds[d][:,i*localh:(i+1)*localh,j*localw:(j+1)*localw] = local_embeds[d]
+                        embeds[d] = embeds[d].cuda()
+            # embeds = [self.codebooks[0].embed(code_slice) for i, code_slice in enumerate(code_slices)]
         else:
             embeds = [self.codebooks[i].embed(code_slice) for i, code_slice in enumerate(code_slices)]
             

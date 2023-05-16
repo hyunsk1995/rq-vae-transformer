@@ -144,8 +144,8 @@ class RQVAE(Stage1Model):
         return self.decoder.conv_out.weight
 
     @torch.no_grad()
-    def get_code_emb_with_depth(self, code):
-        return self.quantizer.embed_code_with_depth(code)
+    def get_code_emb_with_depth(self, code, latent_dim):
+        return self.quantizer.embed_code_with_depth(code, latent_dim)
 
     @torch.no_grad()
     def decode_partial_code(self, code, code_idx, decode_type='select'):
