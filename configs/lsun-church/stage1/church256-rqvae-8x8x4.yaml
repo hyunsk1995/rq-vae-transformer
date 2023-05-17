@@ -47,9 +47,9 @@ optimizer:
 
 experiment:
   batch_size: 8
-  epochs: 10
-  save_ckpt_freq: 10
-  test_freq: 10
+  epochs: 30
+  save_ckpt_freq: 30
+  test_freq: 30
 
 gan:
   disc:
