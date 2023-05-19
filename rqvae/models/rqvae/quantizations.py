@@ -208,7 +208,7 @@ class RQBottleneck(nn.Module):
                                      restart_unused_codes=restart_unused_codes,
                                      ) for _ in range(div[1])) for _ in range(div[0]))
             
-            self.codebooks = nn.ModuleList([codebooks for _ in range(self.code_shape[-1])])
+            self.codebooks = nn.ModuleList(codebooks for _ in range(self.code_shape[-1]))
 
         else:
             codebooks = [VQEmbedding(self.n_embed[idx], 
@@ -374,14 +374,14 @@ class RQBottleneck(nn.Module):
 
         assert code.shape[1:] == self.code_shape
         assert code_idx < code.shape[-1]
-        
+
         B, h, w, _ = code.shape
     
         code_slices = torch.chunk(code, chunks=code.shape[-1], dim=-1)
 
         localh, localw = h//self.div[0], w//self.div[1]
 
-        embeds = [torch.zeros(B, h, w, 1, 256) for _ in range(self.code_shape[-1])]
+        embeds = [torch.zeros(B, h, w, 1, self.latent_shape[-1]) for _ in range(self.code_shape[-1])]
 
         if self.shared_codebook:
             for i in range(self.div[0]):
