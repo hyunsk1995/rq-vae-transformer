@@ -26,7 +26,7 @@ from PIL import Image
 
 class LSUNClass(torchvision.datasets.VisionDataset):
 
-    subpaths = {'church': 'church/church_outdoor_val_lmdb',
+    subpaths = {'church': 'church/church_outdoor_train_lmdb',
                 'church_val': 'church/church_outdoor_val_lmdb',
                 'bedroom': 'bedroom/bedroom_train_lmdb',
                 'bedroom_val': 'bedroom/bedroom_val_lmdb',

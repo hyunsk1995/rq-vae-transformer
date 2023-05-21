@@ -198,7 +198,7 @@ class RQBottleneck(nn.Module):
 
         div = [2, 2]
         self.div = div
-        local_n_embed = self.n_embed[0] // (div[0]*div[1])
+        local_n_embed = self.n_embed[0] # // (div[0]*div[1])
         codebooks = []
 
         if self.shared_codebook:
