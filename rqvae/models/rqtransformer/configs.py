@@ -41,6 +41,7 @@ class RQTransformerConfig:
     type: str = 'rq-transformer'
     ema: Optional[bool] = None
     ar_hierarchy: Optional[bool] = None
+    division: List[int] = MISSING
 
     vocab_size: Any = MISSING
     block_size: List[int] = MISSING

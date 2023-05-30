@@ -12,7 +12,7 @@ arch:
     n_embed: 16384
     latent_shape: [ 8, 8, 256 ]
     code_shape: [ 8, 8, 4 ]
-    division: [ 4, 4 ]
+    division: [ 2, 2 ]
     shared_codebook: true
     decay: 0.99
     restart_unused_codes: true
