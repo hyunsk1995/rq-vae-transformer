@@ -36,7 +36,7 @@ class RQVAE(Stage1Model):
                  checkpointing=False,
                  **kwargs):
         super().__init__()
-
+        print(kwargs)
         assert loss_type in ['mse', 'l1']
 
         self.encoder = Encoder(**ddconfig)
@@ -52,10 +52,12 @@ class RQVAE(Stage1Model):
         if bottleneck_type == 'rq':
             latent_shape = kwargs['latent_shape']
             code_shape = kwargs['code_shape']
+            division = kwargs['division']
             shared_codebook = kwargs['shared_codebook']
             restart_unused_codes = kwargs['restart_unused_codes']
             self.quantizer = RQBottleneck(latent_shape=latent_shape,
                                           code_shape=code_shape,
+                                          division=division,
                                           n_embed=n_embed,
                                           decay=decay,
                                           shared_codebook=shared_codebook,

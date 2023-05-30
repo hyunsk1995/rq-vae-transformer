@@ -164,6 +164,7 @@ class RQBottleneck(nn.Module):
     def __init__(self,
                  latent_shape,
                  code_shape,
+                 division,
                  n_embed,
                  decay=0.99,
                  shared_codebook=False,
@@ -176,6 +177,10 @@ class RQBottleneck(nn.Module):
             raise ValueError("incompatible code shape or latent shape")
         if any([y % x != 0 for x, y in zip(code_shape[:2], latent_shape[:2])]):
             raise ValueError("incompatible code shape or latent shape")
+        if not len(division)  == 2:
+            raise ValueError("incompatible division")
+        if any([y % x != 0 for x, y in zip(division, latent_shape[:2])]):
+            raise ValueError("incompatible division for latent shape")
 
         #residual quantization does not divide feature dims for quantization.
         embed_dim = np.prod(latent_shape[:2]) // np.prod(code_shape[:2]) * latent_shape[2]
@@ -196,9 +201,10 @@ class RQBottleneck(nn.Module):
         assert len(self.n_embed) == self.code_shape[-1]
         assert len(self.decay) == self.code_shape[-1]
 
-        div = [2, 2]
-        self.div = div
-        local_n_embed = self.n_embed[0] # // (div[0]*div[1])
+        # div = [4, 4]
+        self.division = division
+        divx, divy = self.division
+        local_n_embed = self.n_embed[0] // (divx*divy)
         codebooks = []
 
         if self.shared_codebook:
@@ -206,7 +212,7 @@ class RQBottleneck(nn.Module):
                                      embed_dim, 
                                      decay=self.decay[0], 
                                      restart_unused_codes=restart_unused_codes,
-                                     ) for _ in range(div[1])) for _ in range(div[0]))
+                                     ) for _ in range(divy)) for _ in range(divx))
             
             self.codebooks = nn.ModuleList(codebooks for _ in range(self.code_shape[-1]))
 
@@ -265,10 +271,10 @@ class RQBottleneck(nn.Module):
         quant_list = [torch.zeros(B, h, w, embed_dim) for _ in range(self.code_shape[-1])]
         code_list = [torch.zeros(B, h, w, 1, dtype=torch.long) for _ in range(self.code_shape[-1])]
 
-        localh, localw = h//self.div[0], w//self.div[1]
+        localh, localw = h//self.division[0], w//self.division[1]
 
-        for i in range(self.div[0]):
-            for j in range(self.div[1]):
+        for i in range(self.division[0]):
+            for j in range(self.division[1]):
 
                 local_aggregated_quants = torch.zeros(B, localh, localw, embed_dim).cuda()
 
@@ -340,7 +346,7 @@ class RQBottleneck(nn.Module):
         assert code.shape[-1] == self.code_shape[-1]
 
         (h,w,_) = latent_dim        
-        localh, localw = h//self.div[0], w//self.div[1]
+        localh, localw = h//self.division[0], w//self.division[1]
 
         B, sampling_idx, d = code.shape
         i, j = (sampling_idx//h)//localh, (sampling_idx%h)//localw
@@ -379,13 +385,13 @@ class RQBottleneck(nn.Module):
     
         code_slices = torch.chunk(code, chunks=code.shape[-1], dim=-1)
 
-        localh, localw = h//self.div[0], w//self.div[1]
+        localh, localw = h//self.division[0], w//self.division[1]
 
         embeds = [torch.zeros(B, h, w, 1, self.latent_shape[-1]) for _ in range(self.code_shape[-1])]
 
         if self.shared_codebook:
-            for i in range(self.div[0]):
-                for j in range(self.div[1]):
+            for i in range(self.division[0]):
+                for j in range(self.division[1]):
                     local_embeds = [self.codebooks[0][i][j].embed(code_slice[:,i*localh:(i+1)*localh,j*localw:(j+1)*localw]) for _, code_slice in enumerate(code_slices)]
                     
                     for d in range(self.code_shape[-1]):
