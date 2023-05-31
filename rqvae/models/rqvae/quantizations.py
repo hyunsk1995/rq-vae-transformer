@@ -322,11 +322,23 @@ class RQBottleneck(nn.Module):
     @torch.no_grad()
     def embed_code(self, code):
         assert code.shape[1:] == self.code_shape
+
+        B, h, w, _ = code.shape
         
         code_slices = torch.chunk(code, chunks=code.shape[-1], dim=-1)
 
+        localh, localw = h//self.division[0], w//self.division[1]
+
+        embeds = [torch.zeros(B, h, w, 1, self.latent_shape[-1]) for _ in range(self.code_shape[-1])]
+
         if self.shared_codebook:
-            embeds = [self.codebooks[0].embed(code_slice) for i, code_slice in enumerate(code_slices)]
+            for i in range(self.division[0]):
+                for j in range(self.division[1]):
+                    local_embeds = [self.codebooks[0][i][j].embed(code_slice[:,i*localh:(i+1)*localh,j*localw:(j+1)*localw]) for _, code_slice in enumerate(code_slices)]
+                    
+                    for d in range(self.code_shape[-1]):
+                        embeds[d][:,i*localh:(i+1)*localh,j*localw:(j+1)*localw] = local_embeds[d]
+                        embeds[d] = embeds[d].cuda()
         else:
             embeds = [self.codebooks[i].embed(code_slice) for i, code_slice in enumerate(code_slices)]
         
@@ -349,7 +361,10 @@ class RQBottleneck(nn.Module):
         localh, localw = h//self.division[0], w//self.division[1]
 
         B, sampling_idx, d = code.shape
+
+        sampling_idx -= 1
         i, j = (sampling_idx//h)//localh, (sampling_idx%h)//localw
+        print(i, j)
         
         code_slices = torch.chunk(code, chunks=code.shape[-1], dim=-1)
 
@@ -361,6 +376,7 @@ class RQBottleneck(nn.Module):
         if to_latent_shape:
             embeds = [self.to_latent_shape(embed.squeeze(-2)).unsqueeze(-2) for embed in embeds]
         embeds = torch.cat(embeds, dim=-2)
+        print(embeds.shape)
         
         return embeds, None
 
