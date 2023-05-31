@@ -361,7 +361,6 @@ class RQBottleneck(nn.Module):
         if to_latent_shape:
             embeds = [self.to_latent_shape(embed.squeeze(-2)).unsqueeze(-2) for embed in embeds]
         embeds = torch.cat(embeds, dim=-2)
-        print(embeds.shape)
         
         return embeds, None
 

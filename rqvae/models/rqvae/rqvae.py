@@ -36,7 +36,6 @@ class RQVAE(Stage1Model):
                  checkpointing=False,
                  **kwargs):
         super().__init__()
-        print(kwargs)
         assert loss_type in ['mse', 'l1']
 
         self.encoder = Encoder(**ddconfig)

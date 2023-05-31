@@ -7,7 +7,7 @@ dataset:
 arch:
   type: rq-transformer
   block_size: [ 8, 8, 4 ]
-  division: [ 2, 2 ]
+  division: [ 4, 4 ]
 
   embed_dim: 1024
   input_embed_dim: 256

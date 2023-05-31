@@ -100,7 +100,6 @@ if __name__ == '__main__':
                 logger.info(f'Optimizer, scheduelr, and epoch is resumed')
 
     if distenv.master:
-        print(model)
         compute_model_size(model, logger)
 
     if distenv.master and not args.eval:
