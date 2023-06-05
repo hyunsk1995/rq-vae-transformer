@@ -364,7 +364,6 @@ class RQBottleneck(nn.Module):
 
         sampling_idx -= 1
         i, j = (sampling_idx//h)//localh, (sampling_idx%h)//localw
-        print(i, j)
         
         code_slices = torch.chunk(code, chunks=code.shape[-1], dim=-1)
 
