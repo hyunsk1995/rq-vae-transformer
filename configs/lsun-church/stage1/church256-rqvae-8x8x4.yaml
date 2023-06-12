@@ -12,6 +12,7 @@ arch:
     n_embed: 16384
     latent_shape: [ 8, 8, 256 ]
     code_shape: [ 8, 8, 4 ]
+    # division: [ 2, 2 ]
     shared_codebook: true
     decay: 0.99
     restart_unused_codes: true
@@ -46,10 +47,10 @@ optimizer:
 
 
 experiment:
-  batch_size: 8
-  epochs: 3
-  save_ckpt_freq: 1
-  test_freq: 1
+  batch_size: 16
+  epochs: 30
+  save_ckpt_freq: 10
+  test_freq: 10
 
 gan:
   disc:
